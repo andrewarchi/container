@@ -20,6 +20,13 @@ var ErrEmpty = errors.New("deque: deque is empty")
 // ErrIndexBounds is panicked by At with an invalid index.
 var ErrIndexBounds = errors.New("deque: index out of range")
 
+// NewDeque creates a deque from initial values.
+func NewDeque(v ...interface{}) *Deque {
+	data := make([]interface{}, len(v))
+	copy(data, v)
+	return &Deque{data, len(v), 0}
+}
+
 // PushFront pushes the element x onto the front of the deque.
 // The complexity is amortized O(1).
 func (d *Deque) PushFront(x interface{}) {

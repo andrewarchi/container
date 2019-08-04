@@ -11,6 +11,26 @@ type pushTest struct {
 	Val   interface{}
 }
 
+func TestNew(t *testing.T) {
+	dequeCompare(t, 0, NewDeque(), &Deque{[]interface{}{}, 0, 0})
+	dequeCompare(t, 1, NewDeque(1, 2, 3), &Deque{[]interface{}{1, 2, 3}, 3, 0})
+	{
+		data := []interface{}{1, 2, 3}
+		d := NewDeque(data...)
+		dequeCompare(t, 2, d, &Deque{[]interface{}{1, 2, 3}, 3, 0})
+		data[0] = 7
+		arrayCompare(t, 2, d.data, []interface{}{1, 2, 3})
+	}
+	{
+		data := make([]interface{}, 3, 5)
+		data[0], data[1], data[2] = 1, 2, 3
+		d := NewDeque(data...)
+		dequeCompare(t, 3, d, &Deque{[]interface{}{1, 2, 3}, 3, 0})
+		data[0] = 7
+		arrayCompare(t, 3, d.data, []interface{}{1, 2, 3})
+	}
+}
+
 func TestPushFront(t *testing.T) {
 	tests := []pushTest{
 		{
@@ -32,7 +52,7 @@ func TestPushFront(t *testing.T) {
 
 	for i, test := range tests {
 		test.Deque.PushFront(test.Val)
-		deepEqual(t, i, test.Deque, test.Want)
+		dequeCompare(t, i, test.Deque, test.Want)
 	}
 }
 
@@ -57,7 +77,7 @@ func TestPushBack(t *testing.T) {
 
 	for i, test := range tests {
 		test.Deque.PushBack(test.Val)
-		deepEqual(t, i, test.Deque, test.Want)
+		dequeCompare(t, i, test.Deque, test.Want)
 	}
 }
 
@@ -86,7 +106,7 @@ func TestPopFront(t *testing.T) {
 	for i, test := range tests {
 		checkPanic(t, i, test.Panic, func() {
 			test.Deque.PopFront()
-			deepEqual(t, i, test.Deque, test.Want)
+			dequeCompare(t, i, test.Deque, test.Want)
 		})
 	}
 }
@@ -110,8 +130,64 @@ func TestPopBack(t *testing.T) {
 	for i, test := range tests {
 		checkPanic(t, i, test.Panic, func() {
 			test.Deque.PopBack()
-			deepEqual(t, i, test.Deque, test.Want)
+			dequeCompare(t, i, test.Deque, test.Want)
 		})
+	}
+}
+
+type concatTest struct {
+	Deque  *Deque
+	Concat *Deque
+	Want   *Deque
+}
+
+func TestConcatFront(t *testing.T) {
+	tests := []concatTest{
+		{
+			Deque:  &Deque{[]interface{}{nil, nil, 1, 5, 9, nil, nil, nil}, 3, 2},
+			Concat: &Deque{[]interface{}{nil, nil, nil, 3, 1, 4, nil, nil}, 3, 3},
+			Want:   &Deque{[]interface{}{1, 4, 1, 5, 9, nil, nil, 3}, 6, 7},
+		},
+		{
+			Deque:  &Deque{[]interface{}{nil, nil, 4, 5}, 2, 2},
+			Concat: &Deque{[]interface{}{3, nil, nil, nil, 1, 2}, 3, 4},
+			Want:   &Deque{[]interface{}{4, 5, nil, nil, nil, 1, 2, 3}, 5, 5},
+		},
+		{
+			Deque:  &Deque{[]interface{}{5, 6}, 2, 0},
+			Concat: &Deque{[]interface{}{3, 4, 1, 2}, 4, 2},
+			Want:   &Deque{[]interface{}{5, 6, nil, nil, nil, nil, 1, 2, 3, 4}, 6, 6},
+		},
+	}
+
+	for i, test := range tests {
+		test.Deque.ConcatFront(test.Concat)
+		dequeCompare(t, i, test.Deque, test.Want)
+	}
+}
+
+func TestConcatBack(t *testing.T) {
+	tests := []concatTest{
+		{
+			Deque:  &Deque{[]interface{}{nil, nil, nil, 3, 1, 4, nil, nil}, 3, 3},
+			Concat: &Deque{[]interface{}{nil, nil, 1, 5, 9, nil, nil, nil}, 3, 2},
+			Want:   &Deque{[]interface{}{9, nil, nil, 3, 1, 4, 1, 5}, 6, 3},
+		},
+		{
+			Deque:  &Deque{[]interface{}{nil, nil, 1, 2}, 2, 2},
+			Concat: &Deque{[]interface{}{5, nil, nil, nil, 3, 4}, 3, 4},
+			Want:   &Deque{[]interface{}{1, 2, 3, 4, 5, nil, nil, nil}, 5, 0},
+		},
+		{
+			Deque:  &Deque{[]interface{}{1, 2}, 2, 0},
+			Concat: &Deque{[]interface{}{5, 6, 3, 4}, 4, 2},
+			Want:   &Deque{[]interface{}{1, 2, 3, 4, 5, 6, nil, nil, nil, nil}, 6, 0},
+		},
+	}
+
+	for i, test := range tests {
+		test.Deque.ConcatBack(test.Concat)
+		dequeCompare(t, i, test.Deque, test.Want)
 	}
 }
 
@@ -149,7 +225,7 @@ func TestFront(t *testing.T) {
 			})
 		} else {
 			checkPanic(t, i, nil, func() {
-				shallowEqual(t, i, test.Deque.Front(), test.Array[0])
+				shallowCompare(t, i, test.Deque.Front(), test.Array[0])
 			})
 		}
 	}
@@ -163,7 +239,7 @@ func TestBack(t *testing.T) {
 			})
 		} else {
 			checkPanic(t, i, nil, func() {
-				shallowEqual(t, i, test.Deque.Back(), test.Array[len(test.Array)-1])
+				shallowCompare(t, i, test.Deque.Back(), test.Array[len(test.Array)-1])
 			})
 		}
 	}
@@ -173,7 +249,7 @@ func TestAt(t *testing.T) {
 	for testIndex, test := range arrayTests {
 		for i, want := range test.Array {
 			checkPanic(t, testIndex, nil, func() {
-				shallowEqual(t, testIndex, test.Deque.At(i), want)
+				shallowCompare(t, testIndex, test.Deque.At(i), want)
 			})
 		}
 		checkPanic(t, testIndex, ErrIndexBounds, func() {
@@ -187,7 +263,7 @@ func TestAt(t *testing.T) {
 
 func TestArray(t *testing.T) {
 	for i, test := range arrayTests {
-		deepEqual(t, i, test.Deque.Array(), test.Array)
+		arrayCompare(t, i, test.Deque.Array(), test.Array)
 	}
 }
 
@@ -196,22 +272,142 @@ func TestCopy(t *testing.T) {
 		data := make([]interface{}, test.Deque.Cap())
 		copy(data, test.Array)
 		want := &Deque{data, len(test.Array), 0}
-		deepEqual(t, i, test.Deque.Copy(), want)
+		dequeCompare(t, i, test.Deque.Copy(), want)
 	}
 }
 
-func shallowEqual(t *testing.T, testIndex int, got, want interface{}) {
+func TestReserve(t *testing.T) {
+	tests := []struct {
+		Deque *Deque
+		Want  *Deque
+		N     int
+	}{
+		{
+			Deque: &Deque{[]interface{}{}, 0, 0},
+			Want:  &Deque{[]interface{}{}, 0, 0},
+			N:     0,
+		},
+		{
+			Deque: &Deque{[]interface{}{}, 0, 0},
+			Want:  &Deque{[]interface{}{nil, nil}, 0, 0},
+			N:     2,
+		},
+		{
+			Deque: &Deque{[]interface{}{2, 1}, 2, 1},
+			Want:  &Deque{[]interface{}{2, 1}, 2, 1},
+			N:     2,
+		},
+		{
+			Deque: &Deque{[]interface{}{3, nil, 1, 2}, 3, 2},
+			Want:  &Deque{[]interface{}{1, 2, 3, nil, nil, nil, nil, nil}, 3, 0},
+			N:     8,
+		},
+	}
+
+	for i, test := range tests {
+		test.Deque.Reserve(test.N)
+		dequeCompare(t, i, test.Deque, test.Want)
+	}
+}
+
+func TestReset(t *testing.T) {
+	for i, test := range arrayTests {
+		wantCap := test.Deque.Cap()
+		test.Deque.Reset()
+		shallowCompare(t, i, test.Deque.Len(), 0)
+		shallowCompare(t, i, test.Deque.Cap(), wantCap)
+	}
+}
+
+var lenCapTests = []struct {
+	Deque *Deque
+	Len   int
+	Cap   int
+}{
+	{Deque: &Deque{[]interface{}{}, 0, 0}, Len: 0, Cap: 0},
+	{Deque: &Deque{[]interface{}{3, nil, 1, 2}, 3, 2}, Len: 3, Cap: 4},
+	{Deque: &Deque{[]interface{}{4, 1, 3, 1}, 0, 2}, Len: 0, Cap: 4},
+}
+
+func TestLen(t *testing.T) {
+	for i, test := range lenCapTests {
+		shallowCompare(t, i, test.Deque.Len(), test.Len)
+	}
+}
+
+func TestCap(t *testing.T) {
+	for i, test := range lenCapTests {
+		shallowCompare(t, i, test.Deque.Cap(), test.Cap)
+	}
+}
+
+func TestString(t *testing.T) {
+	tests := []struct {
+		Deque  *Deque
+		String string
+	}{
+		{
+			Deque:  &Deque{[]interface{}{1, 2, 3, 4, 5}, 5, 0},
+			String: "[1 2 3 4 5]",
+		},
+		{
+			Deque:  &Deque{[]interface{}{3, nil, nil, "A", "B", "C", 1, 2}, 6, 3},
+			String: "[A B C 1 2 3]",
+		},
+		{
+			Deque:  &Deque{[]interface{}{}, 0, 0},
+			String: "[]",
+		},
+		{
+			Deque:  &Deque{[]interface{}{4, nil, 3, 1}, 0, 2},
+			String: "[]",
+		},
+	}
+
+	for i, test := range tests {
+		shallowCompare(t, i, test.Deque.String(), test.String)
+	}
+}
+
+func shallowCompare(t *testing.T, testIndex int, got, want interface{}) {
 	t.Helper()
 	if got != want {
 		t.Errorf("test %d: got %v, want %v", testIndex, got, want)
 	}
 }
 
-func deepEqual(t *testing.T, testIndex int, got, want interface{}) {
+func deepCompare(t *testing.T, testIndex int, got, want interface{}) {
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("test %d: got %v, want %v", testIndex, got, want)
 	}
+}
+
+func dequeCompare(t *testing.T, testIndex int, got, want *Deque) {
+	t.Helper()
+	if got.len != want.len || got.front != want.front || !arrayEqual(got.data, want.data) {
+		t.Errorf("test %d: got {%v %d %d}, want {%v %d %d}",
+			testIndex, got.data, got.len, got.front, want.data, want.len, want.front)
+	}
+}
+
+func arrayCompare(t *testing.T, testIndex int, got, want []interface{}) {
+	t.Helper()
+	if !arrayEqual(got, want) {
+		t.Errorf("test %d: got %v, want %v", testIndex, got, want)
+	}
+}
+
+func arrayEqual(a, b []interface{}) bool {
+	if len(a) != len(b) || cap(a) != cap(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func checkPanic(t *testing.T, testIndex int, want interface{}, mightPanic func()) {
